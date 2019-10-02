@@ -2,4 +2,7 @@
     <string name="app_name">KotlinCats</string>
     <string name="bismillah">Bismillah!</string>
     <string name="next">Next</string>
+    <string name="prev">Prev</string>
+    <string name="share">Share</string>
+    <string name="some_error">Something Error</string>
 </resources>
