@@ -2,17 +2,18 @@
 A really cool sample Kotlin Android project to learn Kotlin with fun.
 **Made for Android/Kotlin beginners.**
 
-# ToDo (for contributors)
+# Features
+- Shows random cat images each time (From API)
 - Zoom
-- Favorite
-- Show Favorites (grid)
-- Slideshow
+- Favorite (WIP)
+- Show Favorites (grid) (WIP)
+- Slideshow (coming soon)
 - Previous
-- Download (bg service)
+- Download (bg service) (coming soon)
 - Share link
 - Share image
-- Landscape
-- Tablet UI
+- Landscape (coming soon)
+- Tablet UI (coming soon)
 
 **Technical features:**
 - Constraint layout

@@ -4,5 +4,7 @@
     <string name="next">Next</string>
     <string name="prev">Prev</string>
     <string name="share">Share</string>
+    <string name="fav">Fav</string>
     <string name="some_error">Something Error</string>
+    <string name="net_unavailable">Network not available.</string>
 </resources>

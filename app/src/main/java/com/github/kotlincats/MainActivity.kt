@@ -1,14 +1,20 @@
 package com.github.kotlincats
 
 import android.content.Intent
+import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.bumptech.glide.Glide
+import com.github.kotlincats.db.ImagePojo
+import com.github.kotlincats.db.RoomDB
+import com.github.kotlincats.favorite.FavoritesActivity
+import com.github.kotlincats.utils.MyAppClass
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 
@@ -16,7 +22,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     val TAG = javaClass.simpleName
     val catUrl = "https://aws.random.cat/meow"
-    var imageList: ArrayList<String> = ArrayList()
+    var imageList: ArrayList<ImagePojo> = ArrayList()
     var curPosition = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,6 +36,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     fun initViews(){
 
+        tvShowFavorites.setOnClickListener(this)
+        btnFavorite.setOnClickListener(this)
         btnPrevious.setOnClickListener(this)
         btnNext.setOnClickListener (this)
         btnShare.setOnClickListener(this)
@@ -40,51 +48,85 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         Log.e(TAG, "onClick() v=${v?.id}")
 
         when(v?.id){
+            R.id.btnFavorite -> addFavorite()
 
-            R.id.btnPrevious -> {
-                Log.e(TAG, "btnPrevious() curPosition=$curPosition, imageList.size=${imageList.size}")
+            R.id.btnPrevious -> btnPrev()
 
-                if(curPosition>0){
+            R.id.btnNext -> btnNext()
 
-                    curPosition-=1
-                    Glide.with(this).load( imageList.get(curPosition) ).placeholder(R.drawable.loading).dontAnimate()
-                        .error(R.drawable.ic_warning).into(imgCat)
-                    tvUrl.text = imageList.get(curPosition)
+            R.id.btnShare -> btnShare()
 
-                }
-            }
-
-            R.id.btnNext -> {
-                Log.e(TAG, "btnNext() curPosition=$curPosition, imageList.size=${imageList.size}")
-
-                if( curPosition < (imageList.size-1) ){
-
-                    curPosition+=1
-                    Glide.with(this).load( imageList.get(curPosition) ).placeholder(R.drawable.loading).dontAnimate()
-                        .error(R.drawable.ic_warning).into(imgCat)
-                    tvUrl.text = imageList.get(curPosition)
-
-                }else {
-                    showRandomCat()
-                }
-            }
-
-            R.id.btnShare -> {
-                Log.e(TAG, "btnShare() image=${imageList.get(curPosition)}")
-
-                val sendIntent: Intent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, imageList.get(curPosition))
-                    type = "text/plain"
-                }
-
-                val shareIntent = Intent.createChooser(sendIntent, null)
-                startActivity(shareIntent)
-            }
-
+            R.id.tvShowFavorites -> gotoFavs()
         }
 
+    }
 
+    fun gotoFavs(){
+        val intent = Intent(this, FavoritesActivity::class.java)
+        startActivity(intent)
+    }
+
+    fun addFavorite(){
+        //todo: makesure roomdb init'd. then write code to insert record as per Kotlin.
+        InsertTask(this, imageList.get(curPosition)).execute()
+    }
+
+    private class InsertTask(var context: MainActivity, var img: ImagePojo) : AsyncTask<Void, Void, Boolean>() {
+        override fun doInBackground(vararg params: Void?): Boolean {
+            val db = RoomDB.getInstance(context)
+            db.imageDao().addFav(img)
+            return true
+        }
+        override fun onPostExecute(bool: Boolean?) {
+            if (bool!!) {
+                Toast.makeText(context, "Image saved successfully!", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    fun btnPrev(){
+        Log.e(TAG, "btnPrevious() curPosition=$curPosition, imageList.size=${imageList.size}")
+
+        if(curPosition>0){
+
+            curPosition-=1
+            Glide.with(this).load( imageList.get(curPosition).imageUrl ).placeholder(R.drawable.loading).dontAnimate()
+                .error(R.drawable.ic_warning).into(imgCat)
+            tvUrl.text = imageList.get(curPosition).imageUrl
+
+        }
+    }
+
+    fun btnNext(){
+        Log.e(TAG, "btnNext() curPosition=$curPosition, imageList.size=${imageList.size}")
+
+        if( curPosition < (imageList.size-1) ){
+
+            curPosition+=1
+            Glide.with(this).load( imageList.get(curPosition).imageUrl ).placeholder(R.drawable.loading).dontAnimate()
+                .error(R.drawable.ic_warning).into(imgCat)
+            tvUrl.text = imageList.get(curPosition).imageUrl
+
+        }else {
+            showRandomCat()
+        }
+    }
+
+    fun btnShare(){
+        Log.e(TAG, "btnShare() curPosition=$curPosition, imageList.size=${imageList.size}")
+
+        if( curPosition < (imageList.size-1) ) {
+            Log.e(TAG, "btnShare() image=${imageList.get(curPosition).imageUrl}")
+
+            val sendIntent: Intent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, imageList.get(curPosition).imageUrl)
+                type = "text/plain"
+            }
+
+            val shareIntent = Intent.createChooser(sendIntent, null)
+            startActivity(shareIntent)
+        }
     }
 
     fun showRandomCat() {
@@ -99,7 +141,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     Glide.with(this).load(file).placeholder(R.drawable.loading).dontAnimate()
                         .error(R.drawable.ic_warning).into(imgCat)
                     tvUrl.text = file
-                    imageList.add( file )
+
+                    val imagePojo = ImagePojo(file)
+                    imageList.add( imagePojo )
                     curPosition+=1
                     Log.e(TAG, "showRandomCat() curPosition=$curPosition, imageList.size=${imageList.size}")
                 } else {

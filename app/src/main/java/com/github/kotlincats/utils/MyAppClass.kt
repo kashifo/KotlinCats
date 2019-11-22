@@ -1,4 +1,4 @@
-package com.github.kotlincats
+package com.github.kotlincats.utils
 
 import android.app.Application
 import com.android.volley.Request
