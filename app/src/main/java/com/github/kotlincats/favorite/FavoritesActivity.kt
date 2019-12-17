@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.github.kotlincats.db.ImagePojo
 import com.github.kotlincats.R
 import com.github.kotlincats.db.RoomDB
+import com.github.kotlincats.favorite.FavListAdapter.FavClickListener
 import kotlinx.android.synthetic.main.activity_favorites.*
 
 class FavoritesActivity : AppCompatActivity() {
@@ -26,7 +27,13 @@ class FavoritesActivity : AppCompatActivity() {
         rvFavList.setLayoutManager(layoutManager)
         rvFavList.setItemAnimator(DefaultItemAnimator())
 
-        adapter = FavListAdapter(this)
+        adapter = FavListAdapter(this, favClick = object : FavClickListener {
+            override fun onFavClick(url: String) {
+                Log.e(TAG, "onFavClick url="+url)
+                val frag = ImageDialogFragment.newInstance( url )
+                frag.show( supportFragmentManager, "" )
+            }
+        })
         rvFavList.adapter = adapter
 
         GetDataFromDb(this).execute()
