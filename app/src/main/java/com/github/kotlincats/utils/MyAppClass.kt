@@ -1,9 +1,14 @@
 package com.github.kotlincats.utils
 
 import android.app.Application
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.toolbox.Volley
+import com.github.kotlincats.BuildConfig
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
 
 class MyAppClass : Application() {
 
@@ -19,17 +24,32 @@ class MyAppClass : Application() {
         instance = this
     }
 
-    val requestQueue: RequestQueue? = null
-        get() {
-            if (field == null) {
-                return Volley.newRequestQueue(applicationContext)
+    private var retrofit: Retrofit? = null
+
+    fun getRetrofitClient(): Retrofit {
+
+        if (retrofit == null) {
+            var client = OkHttpClient.Builder().build()
+
+            if (BuildConfig.DEBUG) {
+                val interceptor = HttpLoggingInterceptor()
+                interceptor.level = HttpLoggingInterceptor.Level.BODY
+                client = OkHttpClient.Builder() //.addNetworkInterceptor(new StethoInterceptor())
+                    .addInterceptor(interceptor).build()
             }
-            return field
+
+            retrofit = Retrofit.Builder()
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create(getGson()))
+                .baseUrl(Constants.BASE_URL)
+                .build()
         }
 
-    fun <T> addToRequestQueue(request: Request<T>) {
-        request.tag = TAG
-        requestQueue?.add(request)
+        return retrofit!!
+    }
+
+    private fun getGson(): Gson {
+        return GsonBuilder().excludeFieldsWithoutExposeAnnotation().create()
     }
 
 }

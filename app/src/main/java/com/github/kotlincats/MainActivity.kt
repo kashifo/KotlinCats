@@ -7,16 +7,14 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.StringRequest
 import com.bumptech.glide.Glide
 import com.github.kotlincats.db.ImagePojo
 import com.github.kotlincats.db.RoomDB
 import com.github.kotlincats.favorite.FavoritesActivity
+import com.github.kotlincats.utils.ApiInterface
 import com.github.kotlincats.utils.MyAppClass
 import kotlinx.android.synthetic.main.activity_main.*
-import org.json.JSONObject
+import retrofit2.Callback
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -34,12 +32,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         showRandomCat()
     }
 
-    fun initViews(){
+    fun initViews() {
 
         tvShowFavorites.setOnClickListener(this)
         btnFavorite.setOnClickListener(this)
         btnPrevious.setOnClickListener(this)
-        btnNext.setOnClickListener (this)
+        btnNext.setOnClickListener(this)
         btnShare.setOnClickListener(this)
 
     }
@@ -47,7 +45,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(v: View?) {
         Log.e(TAG, "onClick() v=${v?.id}")
 
-        when(v?.id){
+        when (v?.id) {
             R.id.btnFavorite -> addFavorite()
 
             R.id.btnPrevious -> btnPrev()
@@ -61,22 +59,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     }
 
-    fun gotoFavs(){
+    fun gotoFavs() {
         val intent = Intent(this, FavoritesActivity::class.java)
         startActivity(intent)
     }
 
-    fun addFavorite(){
+    fun addFavorite() {
         //todo: makesure roomdb init'd. then write code to insert record as per Kotlin.
         InsertTask(this, imageList.get(curPosition)).execute()
     }
 
-    private class InsertTask(var context: MainActivity, var img: ImagePojo) : AsyncTask<Void, Void, Boolean>() {
+    private class InsertTask(var context: MainActivity, var img: ImagePojo) :
+        AsyncTask<Void, Void, Boolean>() {
         override fun doInBackground(vararg params: Void?): Boolean {
             val db = RoomDB.getInstance(context)
             db.imageDao().addFav(img)
             return true
         }
+
         override fun onPostExecute(bool: Boolean?) {
             if (bool!!) {
                 Toast.makeText(context, "Image saved successfully!", Toast.LENGTH_LONG).show()
@@ -84,38 +84,40 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    fun btnPrev(){
+    fun btnPrev() {
         Log.e(TAG, "btnPrevious() curPosition=$curPosition, imageList.size=${imageList.size}")
 
-        if(curPosition>0){
+        if (curPosition > 0) {
 
-            curPosition-=1
-            Glide.with(this).load( imageList.get(curPosition).imageUrl ).placeholder(R.drawable.loading).dontAnimate()
+            curPosition -= 1
+            Glide.with(this).load(imageList.get(curPosition).imageUrl)
+                .placeholder(R.drawable.loading).dontAnimate()
                 .error(R.drawable.ic_warning).into(imgCat)
             tvUrl.text = imageList.get(curPosition).imageUrl
 
         }
     }
 
-    fun btnNext(){
+    fun btnNext() {
         Log.e(TAG, "btnNext() curPosition=$curPosition, imageList.size=${imageList.size}")
 
-        if( curPosition < (imageList.size-1) ){
+        if (curPosition < (imageList.size - 1)) {
 
-            curPosition+=1
-            Glide.with(this).load( imageList.get(curPosition).imageUrl ).placeholder(R.drawable.loading).dontAnimate()
+            curPosition += 1
+            Glide.with(this).load(imageList.get(curPosition).imageUrl)
+                .placeholder(R.drawable.loading).dontAnimate()
                 .error(R.drawable.ic_warning).into(imgCat)
             tvUrl.text = imageList.get(curPosition).imageUrl
 
-        }else {
+        } else {
             showRandomCat()
         }
     }
 
-    fun btnShare(){
+    fun btnShare() {
         Log.e(TAG, "btnShare() curPosition=$curPosition, imageList.size=${imageList.size}")
 
-        if( curPosition < (imageList.size-1) ) {
+        if (curPosition < (imageList.size - 1)) {
             Log.e(TAG, "btnShare() image=${imageList.get(curPosition).imageUrl}")
 
             val sendIntent: Intent = Intent().apply {
@@ -131,36 +133,45 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     fun showRandomCat() {
 
-        val requestCat = StringRequest(Request.Method.GET, catUrl, Response.Listener { response ->
+        val apiInterface =
+            MyAppClass.instance?.getRetrofitClient()?.create(ApiInterface::class.java)
 
-            try {
-                val jsonObject = JSONObject(response)
-                val file = jsonObject.getString("file")
+        apiInterface?.getRandomCat()?.enqueue(object : Callback<List<ImagePojo>> {
 
-                if (!file.isNullOrEmpty()) {
-                    Glide.with(this).load(file).placeholder(R.drawable.loading).dontAnimate()
-                        .error(R.drawable.ic_warning).into(imgCat)
-                    tvUrl.text = file
+            override fun onResponse(
+                call: retrofit2.Call<List<ImagePojo>>,
+                response: retrofit2.Response<List<ImagePojo>>
+            ) {
+                Log.e(TAG, "onResponse=${response.body()?.toString()}")
 
-                    val imagePojo = ImagePojo(file)
-                    imageList.add( imagePojo )
-                    curPosition+=1
-                    Log.e(TAG, "showRandomCat() curPosition=$curPosition, imageList.size=${imageList.size}")
-                } else {
+                if (response.body() == null || response.body()!!.isEmpty()) {
                     showEmpty()
+                    return
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+
+                val imagePojo: ImagePojo = response.body()!!.get(0)
+
+                if (imagePojo == null && imagePojo.imageUrl.isNullOrEmpty()) {
+                    showEmpty()
+                    return
+                }
+
+                tvUrl.text = imagePojo.imageUrl
+                imageList.add(imagePojo)
+                curPosition += 1
+                Glide.with(this@MainActivity)
+                    .load(imagePojo.imageUrl)
+                    .placeholder(R.drawable.loading).dontAnimate().error(R.drawable.ic_warning)
+                    .into(imgCat)
+                Log.e(TAG, "showRandomCat() curPosition=$curPosition, imageList.size=${imageList.size}")
+            }
+
+            override fun onFailure(call: retrofit2.Call<List<ImagePojo>>, t: Throwable) {
+                Log.e(TAG, "onErrorResponse=${t.message}")
                 showEmpty()
             }
 
-        }, Response.ErrorListener { error ->
-            Log.e(TAG, "onErrorResponse=${error?.message}")
-            showEmpty()
         })
-
-        imgCat.setImageResource(R.drawable.loading) //show loading
-        MyAppClass.instance?.addToRequestQueue(requestCat)
 
     }
 

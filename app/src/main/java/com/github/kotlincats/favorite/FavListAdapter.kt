@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.github.kotlincats.R
 import com.github.kotlincats.db.ImagePojo
 import kotlinx.android.synthetic.main.item_fav_list.view.*
 
@@ -35,7 +36,7 @@ class FavListAdapter(val context: Activity? = null, val favClick: FavClickListen
     override fun onCreateViewHolder(parent: ViewGroup, pos: Int): ViewHolder {
         return ViewHolder(
             LayoutInflater.from(parent.context).inflate(
-                com.github.kotlincats.R.layout.item_fav_list,
+                R.layout.item_fav_list,
                 parent,
                 false
             )

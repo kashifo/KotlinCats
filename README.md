@@ -7,24 +7,30 @@ A really cool sample Kotlin Android project to learn Kotlin with fun.
 - Zoom
 - Favorite (WIP)
 - Show Favorites (grid) (WIP)
-- Slideshow (coming soon)
 - Previous
-- Download (bg service) (coming soon)
 - Share link
 - Share image
-- Landscape (coming soon)
-- Tablet UI (coming soon)
+- Download (coming soon)
+- Slideshow (coming soon)
 
-**Technical features:**
+# Tech concepts used
 - Constraint layout
 - Data binding
 - Volley
-- RetroFit
+- Kotlin
 - RoomDB
-- Dagger
+
+**Planned**
+- Convert to RetroFit
 - MVVM
+- Change UI
+- ViewPager
+- Double click to like
+
 - RxJava
+- Dagger
 - Handling config
-- Download Notification
-- Download bg service
+- Download in background service
 - Coroutines
+- Landscape
+- Tablet UI
